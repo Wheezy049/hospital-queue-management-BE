@@ -6,7 +6,7 @@ import { prisma } from "../src/lib/prisma";
 async function main() {
   const hashedPassword = await hashPassword("admin123@");
 
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: "wheezy049@gmail.com" },
     update: {},
     create: {
@@ -17,7 +17,16 @@ async function main() {
     },
   });
 
-  console.log("Admin user created");
+  const hospital = await prisma.hospital.upsert({
+   where: { id: 'main-hospital-id' },
+   update: { },
+   create: {
+     id: 'main-hospital-id',
+     name: 'General Health Medical Center'
+   }
+});
+
+  console.log("Seeding completed.", { admin, hospital });
 }
 
 main()

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import authRouter from "./routes/auth.routes";
+import departmentRouter from "./routes/department.routes";
 
 const app = express();
 
@@ -12,5 +13,6 @@ app.get("/", (_, res) => {
 });
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/department", departmentRouter);
 
 export default app;

@@ -17,11 +17,9 @@ export const protectRoute = (req: any, res: Response, next: NextFunction) => {
     }
 }
 
-export const authenticate = (...roles: string[]) => {
-    return (req: any, res: Response, next: NextFunction) => {
-        if (!roles.includes(req.user.role)) {
-            return res.status(403).json({ message: "Access denied. Insufficient permissions." });
-        };
-        next();
-    }
+export const isAdmin = (req: any, res: Response, next: NextFunction) => {
+     if (req.user.role !== "ADMIN") {
+    return res.status(403).json({ message: "Admin access only" });
+  }
+  next();
 }
