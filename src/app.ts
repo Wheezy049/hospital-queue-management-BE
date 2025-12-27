@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import authRouter from "./routes/auth.routes";
 import departmentRouter from "./routes/department.routes";
+import appointmentRouter from "./routes/appointment.routes";
 
 const app = express();
 
@@ -14,5 +15,6 @@ app.get("/", (_, res) => {
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/department", departmentRouter);
+app.use("/api/v1/appointment", appointmentRouter);
 
 export default app;

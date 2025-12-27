@@ -23,7 +23,8 @@ export const addDepartment = async (req: Request, res: Response) => {
 
 export const getDepartment = async (req: Request, res: Response) => {
   try {
-    const departments = await getAllDepartments();
+    const { hospitalId } = req.query;
+    const departments = await getAllDepartments(hospitalId as string | undefined);
     res.status(200).json(departments);
   } catch (error) {
     res.status(400).json({ error: "Failed to get departments" });

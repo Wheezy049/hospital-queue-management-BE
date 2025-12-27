@@ -9,8 +9,11 @@ export const createDepartment = async (name: string, hospitalId: string) => {
    })
 }
 
-export const getAllDepartments = async () => {
+export const getAllDepartments = async (hospitalId?: string) => {
     return prisma.department.findMany({
+        where: hospitalId
+      ? { hospitalId }
+      : undefined,
         include: {
             hospital: true
         }
