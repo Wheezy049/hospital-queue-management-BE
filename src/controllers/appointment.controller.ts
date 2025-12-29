@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createAppointment } from "../services/appointment.service";
+import { createAppointment, cancelAppointment, completeAppointment } from "../services/appointment.service";
 import { prisma } from "../lib/prisma";
 
 export const addAppointment = async (req: Request, res: Response) => {
@@ -60,4 +60,27 @@ export const addAppointment = async (req: Request, res: Response) => {
         console.error(error);
         res.status(400).json({ error: "Failed to create appointment" });
     }
+};
+
+// PATCH /appointments/:id/complete
+export const complete = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await completeAppointment(id);
+    res.json({ message: "Appointment completed", result });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+// PATCH /appointments/:id/cancel
+export const cancel = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { userId, role } = req.user;
+    const result = await cancelAppointment(id, userId, role);
+    res.json({ message: "Appointment cancelled", result });
+  } catch (error: any) {
+    res.status(400).json({ message: error.message });
+  }
 };
