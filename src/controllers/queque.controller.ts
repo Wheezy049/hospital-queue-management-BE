@@ -18,7 +18,6 @@ export const nextPatient = async (req: Request, res: Response) => {
   }
 };
 
-
 // GET /queue/today?departmentId=...
 export const getTodayQueue = async (req: Request, res: Response) => {
   try {
@@ -28,6 +27,7 @@ export const getTodayQueue = async (req: Request, res: Response) => {
     const queue = await getTodaysQueue(departmentId as string);
     res.json(queue);
   } catch (error) {
+    console.error("ADMIN_QUEUE_FETCH_ERROR:", error);
     res.status(500).json({ message: "Error fetching queue" });
   }
 };
@@ -37,7 +37,7 @@ export const getMe = async (req: any, res: Response) => {
   try {
     const userId = req.user.userId;
     const myStatus = await getMyQueueStatus(userId);
-    
+
     if (!myStatus) {
       return res.status(404).json({ message: "No active queue found for today" });
     }

@@ -1,10 +1,15 @@
 import { Request, Response } from "express";
 import { createAppointment, cancelAppointment, completeAppointment } from "../services/appointment.service";
 import { prisma } from "../lib/prisma";
+import { startOfDay } from "date-fns";
 
 export const addAppointment = async (req: Request, res: Response) => {
+
     try {
         const { departmentId, hospitalId, date, time } = req.body;
+
+        const appointmentDate = startOfDay(new Date(date));
+
         const user = (req as any).user;
 
         if (!user) {
@@ -35,7 +40,8 @@ export const addAppointment = async (req: Request, res: Response) => {
         const existingAppointment = await prisma.appointment.findFirst({
             where: {
                 patientId: user.userId,
-                date: new Date(date),
+                departmentId,
+                date: appointmentDate,
                 status: {
                     notIn: ["CANCELLED", "DONE"],
                 },
@@ -64,23 +70,30 @@ export const addAppointment = async (req: Request, res: Response) => {
 
 // PATCH /appointments/:id/complete
 export const complete = async (req: any, res: Response) => {
-  try {
-    const { id } = req.params;
-    const result = await completeAppointment(id);
-    res.json({ message: "Appointment completed", result });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
-  }
+
+    if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "Admins only" });
+    }
+
+    try {
+        const { id } = req.params;
+        const result = await completeAppointment(id);
+        res.json({ message: "Appointment completed", result });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
 };
 
 // PATCH /appointments/:id/cancel
 export const cancel = async (req: any, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { userId, role } = req.user;
-    const result = await cancelAppointment(id, userId, role);
-    res.json({ message: "Appointment cancelled", result });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
-  }
+
+    try {
+        const { id } = req.params;
+        const { userId, role } = req.user;
+        const result = await cancelAppointment(id, userId, role);
+        res.json({ message: "Appointment cancelled", result });
+
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
 };

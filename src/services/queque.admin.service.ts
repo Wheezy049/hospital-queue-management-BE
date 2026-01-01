@@ -75,7 +75,7 @@ export const callNextPatient = async (departmentId: string) => {
 // For ADMIN: See all appointments and their queue positions for today
 export const getTodaysQueue = async (departmentId: string) => {
   const today = new Date();
-  
+
   return await prisma.queue.findMany({
     where: {
       appointment: {
@@ -115,7 +115,7 @@ export const getMyQueueStatus = async (userId: string) => {
         },
       },
       // We only care about appointments that aren't finished or cancelled
-      status: { in: ['WAITING', 'ACTIVE'] } 
+      status: { in: ['WAITING', 'ACTIVE'] }
     },
     include: {
       appointment: {
