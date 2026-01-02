@@ -8,7 +8,7 @@ export const createAppointment = async ({ departmentId, date, patientId, time }:
   date: Date;
   time: string;
 }) => {
-  const appointmentDate = startOfDay(new Date(date));
+  const appointmentDate = new Date(`${date}T00:00:00.000Z`);
 
   return await prisma.$transaction(async (tx) => {
     // 1. Create Appointment
@@ -29,7 +29,9 @@ export const createAppointment = async ({ departmentId, date, patientId, time }:
     const queue = await tx.queue.create({
       data: {
         appointmentId: appointment.id,
-        position: position,
+        departmentId,
+        date: appointmentDate,
+        position,
         status: "WAITING",
       },
     });
@@ -78,7 +80,7 @@ export const cancelAppointment = async (appointmentId: string, userId: string, r
       data: { status: "CANCELLED" },
     });
 
-    // We use updateMany because a queue record might not exist if it was just PENDING
+    // We use updateMany because a queue record might not exist if it was just WAITING
     await tx.queue.updateMany({
       where: { appointmentId },
       data: { status: "DONE" },

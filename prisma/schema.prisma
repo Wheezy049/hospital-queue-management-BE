@@ -49,8 +49,9 @@ model Department {
   name       String
   hospitalId String
 
-  hospital    Hospital    @relation(fields: [hospitalId], references: [id])
+  hospital     Hospital      @relation(fields: [hospitalId], references: [id])
   appointments Appointment[]
+  queues       Queue[]
 }
 
 model Appointment {
@@ -64,15 +65,18 @@ model Appointment {
 
   patient    User       @relation(fields: [patientId], references: [id])
   department Department @relation(fields: [departmentId], references: [id])
-  queue       Queue?
+  queue      Queue?
 }
 
 model Queue {
-  id            String      @id @default(uuid())
-  appointmentId String      @unique
-  position      Int
-  status        QueueStatus @default(WAITING)
-  createdAt     DateTime    @default(now())
+  id            String @id @default(uuid())
+  appointmentId String @unique
+  departmentId String
+  date         DateTime
+  position  Int
+  status    QueueStatus @default(WAITING)
+  createdAt DateTime    @default(now())
 
   appointment Appointment @relation(fields: [appointmentId], references: [id])
+  department  Department  @relation(fields: [departmentId], references: [id])
 }
