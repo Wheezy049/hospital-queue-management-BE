@@ -5,11 +5,16 @@ export const getNextPosition = async (
   departmentId: string,
   date: Date
 ) => {
+  const dayStart = startOfDay(date);
+  const dayEnd = endOfDay(date);
 
   const lastQueueEntry = await tx.queue.findFirst({
     where: {
       departmentId,
-      date,
+      date: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
       status: { in: ["WAITING", "ACTIVE"] },
     },
     orderBy: {

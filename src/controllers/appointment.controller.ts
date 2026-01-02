@@ -1,14 +1,12 @@
 import { Request, Response } from "express";
 import { createAppointment, cancelAppointment, completeAppointment } from "../services/appointment.service";
 import { prisma } from "../lib/prisma";
-import { startOfDay } from "date-fns";
+import { normalizeDate } from "../utils/date";
 
 export const addAppointment = async (req: Request, res: Response) => {
 
     try {
         const { departmentId, hospitalId, date, time } = req.body;
-
-        const appointmentDate = startOfDay(new Date(date));
 
         const user = (req as any).user;
 
@@ -37,11 +35,13 @@ export const addAppointment = async (req: Request, res: Response) => {
                 .json({ error: "Department not found in the specified hospital" });
         }
 
+        const normalizedDate = normalizeDate(date);
+
         const existingAppointment = await prisma.appointment.findFirst({
             where: {
                 patientId: user.userId,
                 departmentId,
-                date: appointmentDate,
+                date: normalizedDate,
                 status: {
                     notIn: ["CANCELLED", "DONE"],
                 },
@@ -57,7 +57,7 @@ export const addAppointment = async (req: Request, res: Response) => {
         const appointment = await createAppointment({
             departmentId,
             patientId: user.userId,
-            date: new Date(date),
+            date,
             time,
         });
 

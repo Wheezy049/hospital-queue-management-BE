@@ -1,14 +1,14 @@
 import { prisma } from "../lib/prisma";
 import { getNextPosition } from "./queque.service";
-import { startOfDay } from "date-fns";
+import { normalizeDate } from "../utils/date";
 
 export const createAppointment = async ({ departmentId, date, patientId, time }: {
   departmentId: string;
   patientId: string;
-  date: Date;
+  date: string;
   time: string;
 }) => {
-  const appointmentDate = new Date(`${date}T00:00:00.000Z`);
+  const appointmentDate = normalizeDate(date);
 
   return await prisma.$transaction(async (tx) => {
     // 1. Create Appointment
