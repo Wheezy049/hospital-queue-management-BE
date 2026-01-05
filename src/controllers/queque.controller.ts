@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
-import { callNextPatient, getMyQueueStatus, getTodaysQueue } from "../services/queque.admin.service";
+import { callNextPatient, getMyQueueStatus, getQueueByDate } from "../services/queque.admin.service";
 
 export const nextPatient = async (req: Request, res: Response) => {
   try {
-    const { departmentId } = req.body;
+    const { departmentId, date } = req.body;
 
     if (!departmentId) {
       return res.status(400).json({ message: "departmentId is required" });
     }
 
-    const result = await callNextPatient(departmentId);
+    const result = await callNextPatient(departmentId, date);
 
     res.status(200).json(result);
   } catch (error) {
@@ -19,12 +19,12 @@ export const nextPatient = async (req: Request, res: Response) => {
 };
 
 // GET /queue/today?departmentId=...
-export const getTodayQueue = async (req: Request, res: Response) => {
+export const getQueueByDateAdmin = async (req: Request, res: Response) => {
   try {
-    const { departmentId } = req.query;
+    const { departmentId, date } = req.query;
     if (!departmentId) return res.status(400).json({ message: "departmentId required" });
 
-    const queue = await getTodaysQueue(departmentId as string);
+    const queue = await getQueueByDate(departmentId as string, date as string);
     res.json(queue);
   } catch (error) {
     console.error("ADMIN_QUEUE_FETCH_ERROR:", error);
@@ -36,10 +36,16 @@ export const getTodayQueue = async (req: Request, res: Response) => {
 export const getMe = async (req: any, res: Response) => {
   try {
     const userId = req.user.userId;
-    const myStatus = await getMyQueueStatus(userId);
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: "date is required" });
+    }
+
+    const myStatus = await getMyQueueStatus(userId, date as string);
 
     if (!myStatus) {
-      return res.status(404).json({ message: "No active queue found for today" });
+      return res.status(404).json({ message: "No queue found for this date" });
     }
 
     res.json(myStatus);
