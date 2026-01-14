@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
-import { getNextPosition } from "./queque.service";
-import { normalizeDate } from "../utils/date";
+import { getNextPosition, resyncQueuePositions } from "./queque.service";
+import { normalizeScheduledAt } from "../utils/date";
 
 export const createAppointment = async ({ departmentId, date, patientId, time }: {
   departmentId: string;
@@ -8,35 +8,33 @@ export const createAppointment = async ({ departmentId, date, patientId, time }:
   date: string;
   time: string;
 }) => {
-  const appointmentDate = normalizeDate(date);
+  const scheduledAt = normalizeScheduledAt(date, time);
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Create Appointment
+    // create Appointment
     const appointment = await tx.appointment.create({
       data: {
         patientId,
         departmentId,
-        date: appointmentDate,
-        time,
+        scheduledAt,
         status: "WAITING",
       },
     });
 
-    // 2. Get position (Passing 'tx' to maintain the transaction link)
-    const position = await getNextPosition(tx, departmentId, appointmentDate);
+    // get position (Passing 'tx' to maintain the transaction link)
+    const position = await getNextPosition(tx, departmentId, scheduledAt);
 
-    // 3. Create Queue entry
+    // create Queue entry
     const queue = await tx.queue.create({
       data: {
         appointmentId: appointment.id,
         departmentId,
-        date: appointmentDate,
+        scheduledAt,
         position,
         status: "WAITING",
       },
     });
 
-    // Return both so the controller can send them to the user
     return { appointment, queue };
   });
 };
@@ -44,17 +42,19 @@ export const createAppointment = async ({ departmentId, date, patientId, time }:
 // ADMIN: Mark an appointment as DONE
 export const completeAppointment = async (appointmentId: string) => {
   return await prisma.$transaction(async (tx) => {
-    // 1. Update Appointment Status
+    // update appointment status
     const appointment = await tx.appointment.update({
       where: { id: appointmentId },
       data: { status: "DONE" },
     });
 
-    // 2. Update Queue Status
+    // update queue status
     await tx.queue.update({
       where: { appointmentId },
       data: { status: "DONE" },
     });
+
+    await resyncQueuePositions(tx, appointment.departmentId, appointment.scheduledAt);
 
     return appointment;
   });
@@ -62,14 +62,14 @@ export const completeAppointment = async (appointmentId: string) => {
 
 // PATIENT or ADMIN: Cancel an appointment
 export const cancelAppointment = async (appointmentId: string, userId: string, role: string) => {
-  // Check if the appointment belongs to the patient (Security Check)
+  // check if the appointment belongs to the patient
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
   });
 
   if (!appointment) throw new Error("Appointment not found");
 
-  // Only the owner or an Admin can cancel
+  // only the owner or an Admin can cancel
   if (role !== "ADMIN" && appointment.patientId !== userId) {
     throw new Error("Unauthorized to cancel this appointment");
   }
@@ -80,11 +80,12 @@ export const cancelAppointment = async (appointmentId: string, userId: string, r
       data: { status: "CANCELLED" },
     });
 
-    // We use updateMany because a queue record might not exist if it was just WAITING
-    await tx.queue.updateMany({
+    await tx.queue.update({
       where: { appointmentId },
       data: { status: "DONE" },
     });
+
+    await resyncQueuePositions(tx, appointment.departmentId, appointment.scheduledAt);
 
     return updatedAppt;
   });

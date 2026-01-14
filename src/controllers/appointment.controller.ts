@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { createAppointment, cancelAppointment, completeAppointment } from "../services/appointment.service";
 import { prisma } from "../lib/prisma";
-import { normalizeDate } from "../utils/date";
+import { normalizeScheduledAt } from "../utils/date";
 
+// POST /appointments/create-appointment
 export const addAppointment = async (req: Request, res: Response) => {
-
     try {
         const { departmentId, hospitalId, date, time } = req.body;
 
@@ -35,13 +35,13 @@ export const addAppointment = async (req: Request, res: Response) => {
                 .json({ error: "Department not found in the specified hospital" });
         }
 
-        const normalizedDate = normalizeDate(date);
+        const scheduledAt = normalizeScheduledAt(date, time);
 
         const existingAppointment = await prisma.appointment.findFirst({
             where: {
                 patientId: user.userId,
                 departmentId,
-                date: normalizedDate,
+                scheduledAt,
                 status: {
                     notIn: ["CANCELLED", "DONE"],
                 },
@@ -70,7 +70,6 @@ export const addAppointment = async (req: Request, res: Response) => {
 
 // PATCH /appointments/:id/complete
 export const complete = async (req: any, res: Response) => {
-
     if (req.user.role !== "ADMIN") {
         return res.status(403).json({ message: "Admins only" });
     }
@@ -86,14 +85,34 @@ export const complete = async (req: any, res: Response) => {
 
 // PATCH /appointments/:id/cancel
 export const cancel = async (req: any, res: Response) => {
-
     try {
         const { id } = req.params;
         const { userId, role } = req.user;
         const result = await cancelAppointment(id, userId, role);
         res.json({ message: "Appointment cancelled", result });
-
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
+};
+
+// GET /appointments/my-appointments?type=past
+export const myAppointments = async (req: any, res: Response) => {
+    const { type } = req.query;
+    const userId = req.user.userId;
+    const today = new Date();
+    const where =
+        type === "past"
+            ? { patientId: userId, scheduledAt: { lt: today } }
+            : { patientId: userId, scheduledAt: { gte: today } };
+
+    const appointments = await prisma.appointment.findMany({
+        where,
+        orderBy: { scheduledAt: "asc" },
+        include: {
+            department: true,
+            queue: true,
+        },
+    });
+
+    res.json(appointments);
 };

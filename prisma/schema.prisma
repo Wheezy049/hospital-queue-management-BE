@@ -58,8 +58,7 @@ model Appointment {
   id           String            @id @default(uuid())
   patientId    String
   departmentId String
-  date         DateTime
-  time         String
+  scheduledAt  DateTime
   status       AppointmentStatus @default(PENDING)
   createdAt    DateTime          @default(now())
 
@@ -72,13 +71,13 @@ model Queue {
   id            String @id @default(uuid())
   appointmentId String @unique
   departmentId String
-  date         DateTime
-  position  Int
+  scheduledAt  DateTime
+  position  Int   
   status    QueueStatus @default(WAITING)
   createdAt DateTime    @default(now())
 
   appointment Appointment @relation(fields: [appointmentId], references: [id])
   department  Department  @relation(fields: [departmentId], references: [id])
 
- @@unique([departmentId, date, position])
+ @@unique([departmentId, scheduledAt, position])
 }

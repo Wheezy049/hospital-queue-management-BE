@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
-import { callNextPatient, getMyQueueStatus, getQueueByDate } from "../services/queque.admin.service";
+import { callNextPatient, getMyQueueStatus, getQueueByDate, moveQueue } from "../services/queque.admin.service";
+import { prisma } from "../lib/prisma";
 
+// POST /queue/next
 export const nextPatient = async (req: Request, res: Response) => {
   try {
     const { departmentId, date } = req.body;
@@ -18,10 +20,11 @@ export const nextPatient = async (req: Request, res: Response) => {
   }
 };
 
-// GET /queue/today?departmentId=...
+// GET /queue/get-queque?departmentId=...&date=...
 export const getQueueByDateAdmin = async (req: Request, res: Response) => {
   try {
     const { departmentId, date } = req.query;
+
     if (!departmentId) return res.status(400).json({ message: "departmentId required" });
 
     const queue = await getQueueByDate(departmentId as string, date as string);
@@ -32,15 +35,11 @@ export const getQueueByDateAdmin = async (req: Request, res: Response) => {
   }
 };
 
-// GET /queue/me
+// GET /queue/me?date=...
 export const getMe = async (req: any, res: Response) => {
   try {
     const userId = req.user.userId;
     const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).json({ message: "date is required" });
-    }
 
     const myStatus = await getMyQueueStatus(userId, date as string);
 
@@ -52,4 +51,34 @@ export const getMe = async (req: any, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Error fetching your status" });
   }
+};
+
+// PATCH /queue/:id/move
+export const getMoveQueue = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { direction } = req.body;
+
+  if (!direction) return res.status(400).json({ message: "direction is required" });
+  try {
+    const move = await moveQueue(id, direction);
+    res.json(move);
+  } catch (error) {
+    res.status(500).json({ message: "Error moving queue" });
+  }
+}
+
+// GET /queue/by-appointment/:appointmentId
+export const getQueueByAppointment = async (req: Request, res: Response) => {
+  const { appointmentId } = req.params;
+
+  const queue = await prisma.queue.findUnique({
+    where: { appointmentId },
+  });
+
+  if (!queue) return res.status(404).json({ message: "Not in queue" });
+
+  res.json({
+    position: queue.position,
+    status: queue.status,
+  });
 };
