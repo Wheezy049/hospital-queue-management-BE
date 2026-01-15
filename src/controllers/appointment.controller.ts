@@ -67,7 +67,15 @@ export const addAppointment = async (req: Request, res: Response) => {
             time,
         });
 
-        res.status(201).json(appointment);
+        res.status(201).json({
+            appointmentId: appointment.appointment.id,
+            scheduledAt: appointment.appointment.scheduledAt,
+            status: appointment.appointment.status,
+            queue: {
+                position: appointment.queue.position,
+                status: appointment.queue.status,
+            },
+        });
     } catch (error) {
         console.error(error);
         res.status(400).json({ error: "Failed to create appointment" });
@@ -83,7 +91,11 @@ export const complete = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
         const result = await completeAppointment(id);
-        res.json({ message: "Appointment completed", result });
+        res.json({
+            message: "Appointment completed",
+            appointmentId: result.id,
+            status: result.status
+        });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
@@ -95,7 +107,11 @@ export const cancel = async (req: any, res: Response) => {
         const { id } = req.params;
         const { userId, role } = req.user;
         const result = await cancelAppointment(id, userId, role);
-        res.json({ message: "Appointment cancelled", result });
+        res.json({
+            message: "Appointment cancelled",
+            appointmentId: result.id,
+            status: result.status
+        });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
     }
@@ -114,10 +130,20 @@ export const myAppointments = async (req: any, res: Response) => {
     const appointments = await prisma.appointment.findMany({
         where,
         orderBy: { scheduledAt: "asc" },
-        include: {
-            department: true,
-            queue: true,
-        },
+        select: {
+            id: true,
+            scheduledAt: true,
+            status: true,
+            department: {
+                select: { name: true, hospital: { select: { name: true } } }
+            },
+            queue: {
+                select: {
+                    position: true,
+                    status: true
+                }
+            }
+        }
     });
 
     res.json(appointments);

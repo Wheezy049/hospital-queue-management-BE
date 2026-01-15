@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { registerUser, loginUser } from "../services/auth.service";
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
+import { prisma } from "../lib/prisma";
 
 export const register = async (req: Request, res: Response) => {
     const validation = registerSchema.safeParse(req.body);
@@ -34,5 +35,15 @@ export const login = async (req: Request, res: Response) => {
 }
 
 export const getMe = async (req: any, res: Response) => {
-    res.status(200).json(req.user);
-}
+    const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+        },
+    });
+
+    res.json(user);
+};

@@ -14,8 +14,12 @@ export const getAllDepartments = async (hospitalId?: string) => {
         where: hospitalId
       ? { hospitalId }
       : undefined,
-        include: {
-            hospital: true
+        select: {
+            id: true,
+            name: true,
+            hospital: {
+                select: { id: true, name: true }
+            }
         }
     });
 }

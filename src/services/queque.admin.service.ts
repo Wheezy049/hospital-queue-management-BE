@@ -57,11 +57,13 @@ export const callNextPatient = async (
       data: { status: "ACTIVE" },
     });
 
-    return activatedQueue;
+    return {
+      appointmentId: activatedQueue.appointmentId,
+      position: activatedQueue.position,
+      status: activatedQueue.status,
+    };
   });
 };
-
-
 
 // For ADMIN: See all appointments and their queue positions for today
 export const getQueueByDate = async (
@@ -81,11 +83,13 @@ export const getQueueByDate = async (
       },
     },
     orderBy: { position: "asc" },
-    include: {
+    select: {
+      id: true,
+      position: true,
+      status: true,
+      scheduledAt: true,
       appointment: {
-        include: {
-          patient: { select: { name: true, email: true } },
-        },
+        select: { id: true, patient: { select: { name: true, email: true } } },
       },
     },
   });
@@ -162,4 +166,3 @@ export const moveQueue = async (
     });
   });
 };
-

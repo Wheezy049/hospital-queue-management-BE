@@ -15,7 +15,7 @@ export const nextPatient = async (req: Request, res: Response) => {
 
     res.status(200).json(result);
   } catch (error: any) {
-    console.error("QUEUE NEXT ERROR:", error); 
+    console.error("QUEUE NEXT ERROR:", error);
     res.status(500).json({
       message: error.message || "Failed to move queue",
     });
@@ -50,7 +50,15 @@ export const getMe = async (req: any, res: Response) => {
       return res.status(404).json({ message: "No queue found for this date" });
     }
 
-    res.json(myStatus);
+    res.json({
+      position: myStatus.position,
+      status: myStatus.status,
+      scheduledAt: myStatus.scheduledAt,
+      department: {
+        name: myStatus.appointment.department.name,
+      },
+    });
+
   } catch (error) {
     res.status(500).json({ message: "Error fetching your status" });
   }
@@ -64,7 +72,11 @@ export const getMoveQueue = async (req: Request, res: Response) => {
   if (!direction) return res.status(400).json({ message: "direction is required" });
   try {
     const move = await moveQueue(id, direction);
-    res.json(move);
+    res.json({
+      id: move.id,
+      position: move.position,
+      status: move.status
+    });
   } catch (error) {
     res.status(500).json({ message: "Error moving queue" });
   }
