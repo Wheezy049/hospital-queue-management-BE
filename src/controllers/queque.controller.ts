@@ -14,9 +14,12 @@ export const nextPatient = async (req: Request, res: Response) => {
     const result = await callNextPatient(departmentId, date);
 
     res.status(200).json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to move queue" });
+  } catch (error: any) {
+    console.error("QUEUE NEXT ERROR:", error); 
+    res.status(500).json({
+      message: error.message || "Failed to move queue",
+    });
+
   }
 };
 

@@ -54,6 +54,12 @@ export const addAppointment = async (req: Request, res: Response) => {
                 .json({ error: "You already have an appointment for this date" });
         }
 
+        if (scheduledAt.getTime() < Date.now()) {
+            return res.status(400).json({
+                error: "You cannot book an appointment in the past",
+            });
+        }
+
         const appointment = await createAppointment({
             departmentId,
             patientId: user.userId,

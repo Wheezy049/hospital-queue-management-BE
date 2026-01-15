@@ -11,7 +11,7 @@ export const getNextPosition = async (
   const lastQueueEntry = await tx.queue.findFirst({
     where: {
       departmentId,
-      date: {
+      scheduledAt: {
         gte: dayStart,
         lte: dayEnd,
       },
@@ -38,7 +38,7 @@ export const resyncQueuePositions = async (
   const queues = await tx.queue.findMany({
     where: {
       departmentId,
-      date: {
+      scheduledAt: {
         gte: dayStart,
         lte: dayEnd,
       },

@@ -1,12 +1,12 @@
 import { prisma } from "../lib/prisma";
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 export const callNextPatient = async (
   departmentId: string,
   date?: string
 ) => {
   const targetDate = date
-    ? startOfDay(new Date(date))
+    ? startOfDay(parseISO(date))
     : startOfDay(new Date());
 
   const dayStart = startOfDay(targetDate);
@@ -14,7 +14,6 @@ export const callNextPatient = async (
 
   return prisma.$transaction(async (tx) => {
 
-    // Finish current ACTIVE
     const activeQueue = await tx.queue.findFirst({
       where: {
         departmentId,
@@ -35,7 +34,6 @@ export const callNextPatient = async (
       });
     }
 
-    // Activate next WAITING
     const nextQueue = await tx.queue.findFirst({
       where: {
         departmentId,
@@ -49,19 +47,20 @@ export const callNextPatient = async (
       return { message: "No patients waiting" };
     }
 
-    await tx.queue.update({
+    const activatedQueue = await tx.queue.update({
       where: { id: nextQueue.id },
       data: { status: "ACTIVE" },
     });
 
     await tx.appointment.update({
-      where: { id: nextQueue.appointmentId },
+      where: { id: activatedQueue.appointmentId },
       data: { status: "ACTIVE" },
     });
 
-    return nextQueue;
+    return activatedQueue;
   });
 };
+
 
 
 // For ADMIN: See all appointments and their queue positions for today
