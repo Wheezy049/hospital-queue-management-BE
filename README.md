@@ -198,8 +198,12 @@ src/
 ├── services/         # Business logic and transactions
 ├── lib/              # Prisma client and config
 ├── utils/            # Helpers (date normalization, validation)
+├── jobs/             # Scheduled tasks
+├── middlewares/      # Middleware for authentication
+├── schema/           # Prisma schema files
 ├── routes/           # Route definitions
-└── app.ts            # Application entry point
+├── app.ts            # Application entry point
+└── server.ts         # Server entry point
 ```
 
 ## ✍️ Author
