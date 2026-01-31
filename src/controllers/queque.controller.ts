@@ -3,6 +3,30 @@ import { callNextPatient, getMyQueueStatus, getQueueByDate, moveQueue } from "..
 import { prisma } from "../lib/prisma";
 
 // POST /queue/next
+/**
+ * @openapi
+ * /queue/next:
+ *   post:
+ *     tags:
+ *       - Queue
+ *     summary: Call the next patient in queue
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - departmentId
+ *             properties:
+ *               departmentId:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Next patient called
+ */
 export const nextPatient = async (req: Request, res: Response) => {
   try {
     const { departmentId, date } = req.body;
@@ -24,6 +48,27 @@ export const nextPatient = async (req: Request, res: Response) => {
 };
 
 // GET /queue/get-queque?departmentId=...&date=...
+/**
+ * @openapi
+ * /queue/get-queque:
+ *   get:
+ *     tags:
+ *       - Queue
+ *     summary: Get queue for a department (Admin)
+ *     parameters:
+ *       - in: query
+ *         name: departmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Queue list
+ */
 export const getQueueByDateAdmin = async (req: Request, res: Response) => {
   try {
     const { departmentId, date } = req.query;
@@ -39,6 +84,24 @@ export const getQueueByDateAdmin = async (req: Request, res: Response) => {
 };
 
 // GET /queue/me?date=...
+/**
+ * @openapi
+ * /queue/me:
+ *   get:
+ *     tags:
+ *       - Queue
+ *     summary: Get my queue status
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: My queue status
+ *       404:
+ *         description: No queue found
+ */
 export const getMe = async (req: any, res: Response) => {
   try {
     const userId = req.user.userId;
@@ -65,6 +128,35 @@ export const getMe = async (req: any, res: Response) => {
 };
 
 // PATCH /queue/:id/move
+/**
+ * @openapi
+ * /queue/{id}/move:
+ *   patch:
+ *     tags:
+ *       - Queue
+ *     summary: Move a queue item up or down
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - direction
+ *             properties:
+ *               direction:
+ *                 type: string
+ *                 enum: [UP, DOWN]
+ *     responses:
+ *       200:
+ *         description: Queue moved
+ */
 export const getMoveQueue = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { direction } = req.body;
@@ -83,6 +175,25 @@ export const getMoveQueue = async (req: Request, res: Response) => {
 }
 
 // GET /queue/by-appointment/:appointmentId
+/**
+ * @openapi
+ * /queue/by-appointment/{appointmentId}:
+ *   get:
+ *     tags:
+ *       - Queue
+ *     summary: Get queue status by appointment ID
+ *     parameters:
+ *       - in: path
+ *         name: appointmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Queue status
+ *       404:
+ *         description: Not in queue
+ */
 export const getQueueByAppointment = async (req: Request, res: Response) => {
   const { appointmentId } = req.params;
 
