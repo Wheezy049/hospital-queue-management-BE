@@ -15,8 +15,8 @@ app.get("/", (_, res) => {
 });
 
 app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/department", departmentRouter);
-app.use("/api/v1/appointment", appointmentRouter);
+app.use("/api/v1/departments", departmentRouter);
+app.use("/api/v1/appointments", appointmentRouter);
 app.use("/api/v1/queque", quequeRouter);
 
 export default app;
