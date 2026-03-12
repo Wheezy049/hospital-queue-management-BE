@@ -10,5 +10,5 @@ export const normalizeScheduledAt = (date: string, time: string): Date => {
   const [year, month, day] = date.split("-").map(Number);
   const [hours, minutes] = time.split(":").map(Number);
 
-  return new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+  return new Date(year, month - 1, day, hours, minutes, 0);
 };
