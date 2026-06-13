@@ -1,33 +1,6 @@
 import { Request, Response } from "express";
 import { createDepartment, getAllDepartments } from "../services/department.service";
 
-/**
- * @openapi
- * /departments:
- *   post:
- *     tags:
- *       - Departments
- *     summary: Create a new department
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - hospitalId
- *             properties:
- *               name:
- *                 type: string
- *               hospitalId:
- *                 type: string
- *     responses:
- *       201:
- *         description: Department created
- *       400:
- *         description: Bad request
- */
 export const addDepartment = async (req: Request, res: Response) => {
   try {
     const { name, hospitalId } = req.body;
@@ -48,23 +21,6 @@ export const addDepartment = async (req: Request, res: Response) => {
   }
 }
 
-/**
- * @openapi
- * /departments:
- *   get:
- *     tags:
- *       - Departments
- *     security: []
- *     summary: Get all departments
- *     parameters:
- *       - in: query
- *         name: hospitalId
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of departments
- */
 export const getDepartment = async (req: Request, res: Response) => {
   try {
     const { hospitalId } = req.query;

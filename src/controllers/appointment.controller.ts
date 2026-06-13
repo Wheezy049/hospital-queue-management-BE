@@ -45,43 +45,6 @@ export const addNotes = async (req: any, res: Response) => {
 }
 
 // POST /appointments/create-appointment
-/**
- * @openapi
- * /appointments/create-appointment:
- *   post:
- *     tags:
- *       - Appointments
- *     summary: Create a new appointment
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - departmentId
- *               - hospitalId
- *               - date
- *               - time
- *             properties:
- *               departmentId:
- *                 type: string
- *               hospitalId:
- *                 type: string
- *               date:
- *                 type: string
- *               time:
- *                 type: string
- *     responses:
- *       201:
- *         description: Appointment created
- *       400:
- *         description: Bad request
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
- */
 export const addAppointment = async (req: Request, res: Response) => {
     try {
         const { departmentId, hospitalId, date, time, description, duration } = req.body;
@@ -163,25 +126,6 @@ export const addAppointment = async (req: Request, res: Response) => {
 };
 
 // PATCH /appointments/:id/complete
-/**
- * @openapi
- * /appointments/{id}/complete:
- *   patch:
- *     tags:
- *       - Appointments
- *     summary: Mark an appointment as complete (Staff only)
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Appointment completed
- *       403:
- *         description: Staff only
- */
 export const complete = async (req: any, res: Response) => {
     const staffRoles = ["ADMIN", "SUPER_ADMIN"];
     if (!staffRoles.includes(req.user.role)) {
@@ -202,23 +146,6 @@ export const complete = async (req: any, res: Response) => {
 };
 
 // PATCH /appointments/:id/cancel
-/**
- * @openapi
- * /appointments/{id}/cancel:
- *   patch:
- *     tags:
- *       - Appointments
- *     summary: Cancel an appointment
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Appointment cancelled
- */
 export const cancel = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
@@ -235,24 +162,6 @@ export const cancel = async (req: any, res: Response) => {
 };
 
 // GET /appointments/my-appointments?type=past
-/**
- * @openapi
- * /appointments/my-appointments:
- *   get:
- *     tags:
- *       - Appointments
- *     summary: Get my appointments
- *     parameters:
- *       - in: query
- *         name: type
- *         schema:
- *           type: string
- *           enum: [past, upcoming]
- *         description: Filter by past or upcoming appointments
- *     responses:
- *       200:
- *         description: List of appointments
- */
 export const myAppointments = async (req: any, res: Response) => {
     const { type } = req.query;
     const userId = req.user.userId;

@@ -3,37 +3,6 @@ import { registerUser, loginUser, getAllDoctors } from "../services/auth.service
 import { registerSchema, loginSchema } from "../schemas/auth.schema";
 import { prisma } from "../lib/prisma";
 
-/**
- * @openapi
- * /auth/register:
- *   post:
- *     tags:
- *       - Auth
- *     security: []
- *     summary: Register a new user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       201:
- *         description: User created
- *       400:
- *         description: Bad request
- */
 export const register = async (req: Request, res: Response) => {
     const validation = registerSchema.safeParse(req.body);
 
@@ -58,36 +27,6 @@ export const listDoctors = async (req: Request, res: Response) => {
     }
 }
 
-/**
- * @openapi
- * /auth/login:
- *   post:
- *     tags:
- *       - Auth
- *     security: []
- *     summary: Login a user
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *       400:
- *         description: Invalid input
- *       401:
- *         description: Invalid credentials
- */
 export const login = async (req: Request, res: Response) => {
     const validation = loginSchema.safeParse(req.body);
 
@@ -104,17 +43,6 @@ export const login = async (req: Request, res: Response) => {
     }
 }
 
-/**
- * @openapi
- * /auth/me:
- *   get:
- *     tags:
- *       - Auth
- *     summary: Get current user profile
- *     responses:
- *       200:
- *         description: User profile
- */
 export const getMe = async (req: any, res: Response) => {
     const user = await prisma.user.findUnique({
         where: { id: req.user.userId },
