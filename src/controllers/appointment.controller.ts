@@ -1,7 +1,48 @@
 import { Request, Response } from "express";
-import { createAppointment, cancelAppointment, completeAppointment } from "../services/appointment.service";
+import { Prisma } from "@prisma/client";
+import { createAppointment, cancelAppointment, completeAppointment, getAppointments, updateAppointmentNotes } from "../services/appointment.service";
+import { calculateEstimatedWaitTime } from "../services/queque.service";
 import { prisma } from "../lib/prisma";
 import { normalizeScheduledAt } from "../utils/date";
+
+// GET /appointments
+export const listAppointments = async (req: any, res: Response) => {
+    try {
+        const { userId, role } = req.user;
+        
+        // For Doctors/Admins, we need to know their department
+        let departmentId = undefined;
+        if (role === "ADMIN") {
+            const userDetails = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { departmentId: true }
+            });
+            departmentId = userDetails?.departmentId || undefined;
+        }
+
+        const appointments = await getAppointments(userId, role, departmentId);
+        res.json(appointments);
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// PATCH /appointments/:id/notes
+export const addNotes = async (req: any, res: Response) => {
+    const { id } = req.params;
+    const { notes } = req.body;
+    
+    if (req.user.role !== "ADMIN" && req.user.role !== "SUPER_ADMIN") {
+        return res.status(403).json({ message: "Only doctors can add notes" });
+    }
+
+    try {
+        const result = await updateAppointmentNotes(id, notes);
+        res.json({ message: "Notes updated", appointment: result });
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+}
 
 // POST /appointments/create-appointment
 /**
@@ -43,7 +84,7 @@ import { normalizeScheduledAt } from "../utils/date";
  */
 export const addAppointment = async (req: Request, res: Response) => {
     try {
-        const { departmentId, hospitalId, date, time } = req.body;
+        const { departmentId, hospitalId, date, time, description, duration } = req.body;
 
         const user = (req as any).user;
 
@@ -102,6 +143,8 @@ export const addAppointment = async (req: Request, res: Response) => {
             patientId: user.userId,
             date,
             time,
+            description,
+            duration: duration ? parseInt(duration) : undefined
         });
 
         res.status(201).json({
@@ -126,7 +169,7 @@ export const addAppointment = async (req: Request, res: Response) => {
  *   patch:
  *     tags:
  *       - Appointments
- *     summary: Mark an appointment as complete (Admin only)
+ *     summary: Mark an appointment as complete (Staff only)
  *     parameters:
  *       - in: path
  *         name: id
@@ -137,11 +180,12 @@ export const addAppointment = async (req: Request, res: Response) => {
  *       200:
  *         description: Appointment completed
  *       403:
- *         description: Admins only
+ *         description: Staff only
  */
 export const complete = async (req: any, res: Response) => {
-    if (req.user.role !== "ADMIN") {
-        return res.status(403).json({ message: "Admins only" });
+    const staffRoles = ["ADMIN", "SUPER_ADMIN"];
+    if (!staffRoles.includes(req.user.role)) {
+        return res.status(403).json({ message: "Staff only" });
     }
 
     try {
@@ -213,29 +257,55 @@ export const myAppointments = async (req: any, res: Response) => {
     const { type } = req.query;
     const userId = req.user.userId;
     const today = new Date();
-    const where =
+    const todayStart = new Date(today.setHours(0, 0, 0, 0)); // Using native JS for local startOfDay
+
+    const where: Prisma.AppointmentWhereInput =
         type === "past"
-            ? { patientId: userId, scheduledAt: { lt: today } }
-            : { patientId: userId, scheduledAt: { gte: today } };
+            ? {
+                  patientId: userId,
+                  OR: [
+                      { scheduledAt: { lt: todayStart } },
+                      { status: { in: ["DONE", "CANCELLED"] } }
+                  ]
+              }
+            : {
+                  patientId: userId,
+                  scheduledAt: { gte: todayStart },
+                  status: { in: ["WAITING", "ACTIVE"] }
+              };
 
     const appointments = await prisma.appointment.findMany({
         where,
         orderBy: { scheduledAt: "asc" },
-        select: {
-            id: true,
-            scheduledAt: true,
-            status: true,
+        include: {
             department: {
-                select: { name: true, hospital: { select: { name: true } } }
+                select: { id: true, name: true, hospital: { select: { name: true } } }
             },
             queue: {
                 select: {
                     position: true,
-                    status: true
+                    status: true,
+                    departmentId: true,
+                    scheduledAt: true
                 }
             }
         }
     });
 
-    res.json(appointments);
+    const results = await Promise.all(appointments.map(async (appt) => {
+        let waitTime = 0;
+        if (appt.queue && appt.status === "WAITING") {
+            waitTime = await calculateEstimatedWaitTime(
+                appt.queue.departmentId,
+                appt.queue.position,
+                appt.queue.scheduledAt
+            );
+        }
+        return {
+            ...appt,
+            estimatedWaitTime: waitTime
+        };
+    }));
+
+    res.json(results);
 };

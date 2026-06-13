@@ -14,9 +14,9 @@ app.get("/", (_, res) => {
   res.send("Hospital Queue API running");
 });
 
-app.use("/api/v1/auth", authRouter);
-app.use("/api/v1/departments", departmentRouter);
-app.use("/api/v1/appointments", appointmentRouter);
-app.use("/api/v1/queque", quequeRouter);
+app.use("/auth", authRouter);
+app.use("/departments", departmentRouter);
+app.use("/appointments", appointmentRouter);
+app.use("/queque", quequeRouter);
 
 export default app;

@@ -8,9 +8,10 @@ type UserProps = {
     email: string;
     password: string;
     role?: Role;
+    departmentId?: string;
 }
 
-export const registerUser = async ({ name, email, password, role }: UserProps) => {
+export const registerUser = async ({ name, email, password, role, departmentId }: UserProps) => {
 
     const existingUser = await prisma.user.findUnique({
         where: { email }
@@ -27,13 +28,15 @@ export const registerUser = async ({ name, email, password, role }: UserProps) =
             name,
             email,
             password: hashedPassword,
-            role: role || Role.PATIENT
+            role: role || Role.PATIENT,
+            departmentId: departmentId || null
         },
         select: {
             id: true,
             name: true,
             email: true,
             role: true,
+            departmentId: true,
         }
     });
     return user;
@@ -68,4 +71,18 @@ export const loginUser = async (email: string, password: string) => {
         }
     }
 
+}
+
+export const getAllDoctors = async () => {
+    return prisma.user.findMany({
+        where: { role: Role.ADMIN },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            departmentId: true,
+            department: { select: { name: true } }
+        }
+    });
 }

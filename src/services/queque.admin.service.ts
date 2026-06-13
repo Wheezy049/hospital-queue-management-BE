@@ -71,14 +71,14 @@ export const getQueueByDate = async (
   date?: string
 ) => {
   const targetDate = date
-    ? startOfDay(new Date(date))
+    ? startOfDay(parseISO(date))
     : startOfDay(new Date());
 
   return prisma.queue.findMany({
     where: {
       departmentId,
       scheduledAt: {
-        gte: startOfDay(targetDate),
+        gte: targetDate,
         lte: endOfDay(targetDate),
       },
     },
@@ -101,7 +101,7 @@ export const getMyQueueStatus = async (
   date?: string
 ) => {
   const targetDate = date
-    ? startOfDay(new Date(date))
+    ? startOfDay(parseISO(date))
     : startOfDay(new Date());
 
   return prisma.queue.findFirst({

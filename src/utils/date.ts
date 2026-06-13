@@ -1,10 +1,10 @@
 /**
- * Always returns a UTC datetime
+ * Returns a Date in the server's local timezone
  * Input:
  *  date = "2026-01-14"
  *  time = "14:00"
  * Output:
- *  2026-01-14T14:00:00.000Z
+ *  2026-01-14T14:00:00 (local time)
  */
 export const normalizeScheduledAt = (date: string, time: string): Date => {
   const [year, month, day] = date.split("-").map(Number);

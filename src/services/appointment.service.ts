@@ -2,11 +2,13 @@ import { prisma } from "../lib/prisma";
 import { getNextPosition, resyncQueuePositions } from "./queque.service";
 import { normalizeScheduledAt } from "../utils/date";
 
-export const createAppointment = async ({ departmentId, date, patientId, time }: {
+export const createAppointment = async ({ departmentId, date, patientId, time, description, duration }: {
   departmentId: string;
   patientId: string;
   date: string;
   time: string;
+  description?: string;
+  duration?: number;
 }) => {
   const scheduledAt = normalizeScheduledAt(date, time);
 
@@ -17,6 +19,8 @@ export const createAppointment = async ({ departmentId, date, patientId, time }:
         patientId,
         departmentId,
         scheduledAt,
+        description,
+        duration: duration || 30,
         status: "WAITING",
       },
     });
@@ -62,15 +66,17 @@ export const completeAppointment = async (appointmentId: string) => {
 
 // PATIENT or ADMIN: Cancel an appointment
 export const cancelAppointment = async (appointmentId: string, userId: string, role: string) => {
-  // check if the appointment belongs to the patient
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
   });
 
   if (!appointment) throw new Error("Appointment not found");
 
-  // only the owner or an Admin can cancel
-  if (role !== "ADMIN" && appointment.patientId !== userId) {
+  const staffRoles = ["ADMIN", "SUPER_ADMIN"];
+  const isStaff = staffRoles.includes(role);
+
+  // only the owner or Staff can cancel
+  if (!isStaff && appointment.patientId !== userId) {
     throw new Error("Unauthorized to cancel this appointment");
   }
 
@@ -90,3 +96,33 @@ export const cancelAppointment = async (appointmentId: string, userId: string, r
     return updatedAppt;
   });
 };
+
+export const getAppointments = async (userId: string, role: string, departmentId?: string) => {
+  let where: any = {};
+
+  if (role === "SUPER_ADMIN") {
+    // see everything
+  } else if (role === "ADMIN") {
+    if (!departmentId) throw new Error("Department ID required for staff");
+    where.departmentId = departmentId;
+  } else if (role === "PATIENT") {
+    where.patientId = userId;
+  }
+
+  return prisma.appointment.findMany({
+    where,
+    include: {
+      patient: { select: { name: true, email: true } },
+      department: { select: { name: true } },
+      queue: true
+    },
+    orderBy: { scheduledAt: 'asc' }
+  });
+};
+
+export const updateAppointmentNotes = async (appointmentId: string, doctorNotes: string) => {
+    return prisma.appointment.update({
+        where: { id: appointmentId },
+        data: { doctorNotes }
+    });
+}
