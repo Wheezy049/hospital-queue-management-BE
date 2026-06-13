@@ -6,9 +6,9 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Hospital Queue API",
+      title: "Qure API",
       version: "1.0.0",
-      description: "API documentation for the Hospital Queue Management System",
+      description: "API documentation for the Qure Clinic Queue Management System",
     },
     components: {
       securitySchemes: {
@@ -26,7 +26,7 @@ const options: swaggerJsdoc.Options = {
     ],
     servers: [
       {
-        url: "http://localhost:5000/api/v1",
+        url: "http://localhost:5000",
         description: "Local server",
       },
     ],

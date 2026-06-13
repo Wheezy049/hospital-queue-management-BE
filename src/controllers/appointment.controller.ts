@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { createAppointment, cancelAppointment, completeAppointment, getAppointments, updateAppointmentNotes } from "../services/appointment.service";
-import { calculateEstimatedWaitTime } from "../services/queque.service";
+import { calculateEstimatedWaitTime } from "../services/queue.service";
 import { prisma } from "../lib/prisma";
 import { normalizeScheduledAt } from "../utils/date";
 

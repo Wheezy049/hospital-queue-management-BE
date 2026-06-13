@@ -13,7 +13,6 @@ export const callNextPatient = async (
   const dayEnd = endOfDay(targetDate);
 
   return prisma.$transaction(async (tx) => {
-
     const activeQueue = await tx.queue.findFirst({
       where: {
         departmentId,

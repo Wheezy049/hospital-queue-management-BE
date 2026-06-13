@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { getNextPosition, resyncQueuePositions } from "./queque.service";
+import { getNextPosition, resyncQueuePositions } from "./queue.service";
 import { normalizeScheduledAt } from "../utils/date";
 
 export const createAppointment = async ({ departmentId, date, patientId, time, description, duration }: {

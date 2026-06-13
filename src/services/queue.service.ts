@@ -26,13 +26,11 @@ export const getNextPosition = async (
   return lastQueueEntry ? lastQueueEntry.position + 1 : 1;
 };
 
-
 export const resyncQueuePositions = async (
   tx: any,
   departmentId: string,
   date: Date
 ) => {
-
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
 

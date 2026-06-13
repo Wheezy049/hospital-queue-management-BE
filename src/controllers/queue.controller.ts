@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { callNextPatient, getMyQueueStatus, getQueueByDate, moveQueue } from "../services/queque.admin.service";
+import { callNextPatient, getMyQueueStatus, getQueueByDate, moveQueue } from "../services/queue.admin.service";
 import { prisma } from "../lib/prisma";
 
 // POST /queue/next
@@ -26,6 +26,10 @@ import { prisma } from "../lib/prisma";
  *     responses:
  *       200:
  *         description: Next patient called
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
  */
 export const nextPatient = async (req: Request, res: Response) => {
   try {
@@ -43,14 +47,13 @@ export const nextPatient = async (req: Request, res: Response) => {
     res.status(500).json({
       message: error.message || "Failed to move queue",
     });
-
   }
 };
 
-// GET /queue/get-queque?departmentId=...&date=...
+// GET /queue/get-queue?departmentId=...&date=...
 /**
  * @openapi
- * /queue/get-queque:
+ * /queue/get-queue:
  *   get:
  *     tags:
  *       - Queue
@@ -68,6 +71,10 @@ export const nextPatient = async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: Queue list
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
  */
 export const getQueueByDateAdmin = async (req: Request, res: Response) => {
   try {
@@ -101,6 +108,8 @@ export const getQueueByDateAdmin = async (req: Request, res: Response) => {
  *         description: My queue status
  *       404:
  *         description: No queue found
+ *       500:
+ *         description: Internal server error
  */
 export const getMe = async (req: any, res: Response) => {
   try {
@@ -121,7 +130,6 @@ export const getMe = async (req: any, res: Response) => {
         name: myStatus.appointment.department.name,
       },
     });
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching your status" });
   }
@@ -156,6 +164,10 @@ export const getMe = async (req: any, res: Response) => {
  *     responses:
  *       200:
  *         description: Queue moved
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
  */
 export const getMoveQueue = async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -172,7 +184,7 @@ export const getMoveQueue = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: "Error moving queue" });
   }
-}
+};
 
 // GET /queue/by-appointment/:appointmentId
 /**
@@ -207,4 +219,56 @@ export const getQueueByAppointment = async (req: Request, res: Response) => {
     position: queue.position,
     status: queue.status,
   });
+};
+
+// GET /queue/public?departmentId=...&date=...
+/**
+ * @openapi
+ * /queue/public:
+ *   get:
+ *     tags:
+ *       - Queue
+ *     summary: Get public queue for a department (Patients)
+ *     parameters:
+ *       - in: query
+ *         name: departmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Public queue list (no sensitive patient data)
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+export const getQueueByDatePublic = async (req: Request, res: Response) => {
+  try {
+    const { departmentId, date } = req.query;
+
+    if (!departmentId) {
+      return res.status(400).json({ message: "departmentId is required" });
+    }
+
+    const queue = await getQueueByDate(departmentId as string, date as string);
+
+    // Map and strip sensitive data
+    const publicQueue = queue.map((item) => ({
+      id: item.id,
+      position: item.position,
+      status: item.status,
+      scheduledAt: item.scheduledAt,
+      appointmentId: item.appointment.id,
+    }));
+
+    res.json(publicQueue);
+  } catch (error) {
+    console.error("PUBLIC_QUEUE_FETCH_ERROR:", error);
+    res.status(500).json({ message: "Error fetching public queue" });
+  }
 };
