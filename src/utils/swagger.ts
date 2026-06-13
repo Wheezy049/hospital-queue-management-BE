@@ -26,6 +26,10 @@ const options: swaggerJsdoc.Options = {
     ],
     servers: [
       {
+        url: "https://qure-backend-chzb.onrender.com",
+        description: "Production server (Render)",
+      },
+      {
         url: "http://localhost:5000",
         description: "Local server",
       },
