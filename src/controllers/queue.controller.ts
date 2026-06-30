@@ -3,15 +3,20 @@ import { callNextPatient, getMyQueueStatus, getQueueByDate, moveQueue } from "..
 import { prisma } from "../lib/prisma";
 
 // POST /queue/next
-export const nextPatient = async (req: Request, res: Response) => {
+export const nextPatient = async (req: any, res: Response) => {
   try {
-    const { departmentId, date } = req.body;
+    const { date, departmentId } = req.body;
+    const { role, userId } = req.user;
 
-    if (!departmentId) {
-      return res.status(400).json({ message: "departmentId is required" });
+    let result;
+    if (role === "ADMIN") {
+      result = await callNextPatient({ doctorId: userId }, date);
+    } else {
+      if (!departmentId) {
+        return res.status(400).json({ message: "departmentId is required" });
+      }
+      result = await callNextPatient({ departmentId }, date);
     }
-
-    const result = await callNextPatient(departmentId, date);
 
     res.status(200).json(result);
   } catch (error: any) {
@@ -22,14 +27,22 @@ export const nextPatient = async (req: Request, res: Response) => {
   }
 };
 
-// GET /queue/get-queue?departmentId=...&date=...
-export const getQueueByDateAdmin = async (req: Request, res: Response) => {
+// GET /queue/get-queue?doctorId=...&departmentId=...&date=...
+export const getQueueByDateAdmin = async (req: any, res: Response) => {
   try {
-    const { departmentId, date } = req.query;
+    const { doctorId, departmentId, date } = req.query;
+    const { role, userId } = req.user;
 
-    if (!departmentId) return res.status(400).json({ message: "departmentId required" });
+    let filters: any = {};
 
-    const queue = await getQueueByDate(departmentId as string, date as string);
+    if (role === "ADMIN") {
+      filters.doctorId = userId;
+    } else {
+      if (doctorId) filters.doctorId = doctorId as string;
+      if (departmentId) filters.departmentId = departmentId as string;
+    }
+
+    const queue = await getQueueByDate(filters, date as string);
     res.json(queue);
   } catch (error) {
     console.error("ADMIN_QUEUE_FETCH_ERROR:", error);
@@ -96,16 +109,20 @@ export const getQueueByAppointment = async (req: Request, res: Response) => {
   });
 };
 
-// GET /queue/public?departmentId=...&date=...
+// GET /queue/public?doctorId=...&departmentId=...&date=...
 export const getQueueByDatePublic = async (req: Request, res: Response) => {
   try {
-    const { departmentId, date } = req.query;
+    const { doctorId, departmentId, date } = req.query;
 
-    if (!departmentId) {
-      return res.status(400).json({ message: "departmentId is required" });
+    if (!doctorId && !departmentId) {
+      return res.status(400).json({ message: "doctorId or departmentId is required" });
     }
 
-    const queue = await getQueueByDate(departmentId as string, date as string);
+    const filters: any = {};
+    if (doctorId) filters.doctorId = doctorId as string;
+    if (departmentId) filters.departmentId = departmentId as string;
+
+    const queue = await getQueueByDate(filters, date as string);
 
     // Map and strip sensitive data
     const publicQueue = queue.map((item) => ({

@@ -17,9 +17,17 @@ export const getAllDepartments = async (hospitalId?: string) => {
         select: {
             id: true,
             name: true,
+            assignmentStrategy: true,
             hospital: {
                 select: { id: true, name: true }
             }
         }
     });
+}
+
+export const updateDepartmentStrategy = async (id: string, strategy: any) => {
+  return prisma.department.update({
+    where: { id },
+    data: { assignmentStrategy: strategy }
+  });
 }

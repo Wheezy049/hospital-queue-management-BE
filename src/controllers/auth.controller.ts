@@ -63,7 +63,6 @@ export const createDoctor = async (req: Request, res: Response) => {
     try {
         const { name, email, password, departmentId } = req.body;
 
-        // Note: Middleware should handle Super Admin check, but we can double check here
         if ((req as any).user.role !== "SUPER_ADMIN") {
             return res.status(403).json({ message: "Only Super Admins can create doctors" });
         }

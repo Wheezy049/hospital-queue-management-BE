@@ -39,7 +39,13 @@ export const registerUser = async ({ name, email, password, role, departmentId }
             departmentId: true,
         }
     });
-    return user;
+
+    const token = generateToken({ userId: user.id, role: user.role });
+
+    return {
+        token,
+        user
+    };
 }
 
 export const loginUser = async (email: string, password: string) => {

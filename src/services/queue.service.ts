@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 
 export const getNextPosition = async (
   tx: any,
-  departmentId: string,
+  doctorId: string,
   date: Date
 ) => {
   const dayStart = startOfDay(date);
@@ -11,7 +11,7 @@ export const getNextPosition = async (
 
   const lastQueueEntry = await tx.queue.findFirst({
     where: {
-      departmentId,
+      doctorId,
       scheduledAt: {
         gte: dayStart,
         lte: dayEnd,
@@ -28,7 +28,7 @@ export const getNextPosition = async (
 
 export const resyncQueuePositions = async (
   tx: any,
-  departmentId: string,
+  doctorId: string,
   date: Date
 ) => {
   const dayStart = startOfDay(date);
@@ -36,7 +36,7 @@ export const resyncQueuePositions = async (
 
   const queues = await tx.queue.findMany({
     where: {
-      departmentId,
+      doctorId,
       scheduledAt: {
         gte: dayStart,
         lte: dayEnd,
@@ -56,13 +56,15 @@ export const resyncQueuePositions = async (
   }
 };
 
-export const calculateEstimatedWaitTime = async (departmentId: string, position: number, date: Date) => {
+export const calculateEstimatedWaitTime = async (doctorId: string, position: number, date: Date) => {
   const dayStart = startOfDay(date);
   const dayEnd = endOfDay(date);
 
   const precedingQueues = await prisma.queue.findMany({
     where: {
-      departmentId,
+      appointment: {
+        doctorId,
+      },
       scheduledAt: { gte: dayStart, lte: dayEnd },
       position: { lt: position },
       status: { in: ["WAITING", "ACTIVE"] },

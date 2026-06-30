@@ -5,6 +5,7 @@ import departmentRouter from "./routes/department.routes";
 import appointmentRouter from "./routes/appointment.routes";
 import queueRouter from "./routes/queue.routes";
 import hospitalRouter from "./routes/hospital.routes";
+import availabilityRouter from "./routes/availability.routes";
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use("/departments", departmentRouter);
 app.use("/appointments", appointmentRouter);
 app.use("/queue", queueRouter);
 app.use("/hospitals", hospitalRouter);
+app.use("/availability", availabilityRouter);
 
 export default app;

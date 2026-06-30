@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createDepartment, getAllDepartments } from "../services/department.service";
+import { createDepartment, getAllDepartments, updateDepartmentStrategy } from "../services/department.service";
 
 export const addDepartment = async (req: Request, res: Response) => {
   try {
@@ -30,3 +30,20 @@ export const getDepartment = async (req: Request, res: Response) => {
     res.status(400).json({ error: "Failed to get departments" });
   }
 }
+
+export const updateStrategy = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { assignmentStrategy } = req.body;
+
+    if (!assignmentStrategy || (assignmentStrategy !== "AUTO_ASSIGN" && assignmentStrategy !== "PATIENT_SELECTED")) {
+      return res.status(400).json({ error: "Invalid assignmentStrategy" });
+    }
+
+    const department = await updateDepartmentStrategy(id, assignmentStrategy);
+    res.status(200).json(department);
+  } catch (error: any) {
+    console.error("Error updating department strategy:", error);
+    res.status(400).json({ error: error.message || "Failed to update strategy" });
+  }
+};

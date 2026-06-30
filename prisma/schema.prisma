@@ -27,6 +27,18 @@ enum QueueStatus {
   DONE
 }
 
+enum AssignmentStrategy {
+  AUTO_ASSIGN
+  PATIENT_SELECTED
+}
+
+enum AssignmentReason {
+  PRIMARY_DOCTOR
+  AUTO_ASSIGNED
+  PATIENT_SELECTED
+  TEMPORARY_REPLACEMENT
+}
+
 model User {
   id        String   @id @default(uuid())
   name      String
@@ -35,10 +47,22 @@ model User {
   role      Role
   createdAt DateTime @default(now())
 
+  // Doctor Capacity & Status
+  status           String?   // e.g. "ACTIVE", "ON_LEAVE", "OFF_DUTY"
+  isAvailable      Boolean   @default(true)
+  maxDailyPatients Int       @default(20)
+
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
-  appointments Appointment[] @relation("PatientAppointments")
-  doctorAppointments Appointment[] @relation("DoctorAppointments")
+  
+  appointments       Appointment[]   @relation("PatientAppointments")
+  doctorAppointments Appointment[]   @relation("DoctorAppointments")
+  doctorAvailability DoctorAvailability[] @relation("DoctorAvailability")
+
+  // Relationships
+  patientRelationships PatientDoctor[] @relation("PatientRelationships")
+  doctorRelationships  PatientDoctor[] @relation("DoctorRelationships")
+  doctorQueues         Queue[]         @relation("DoctorQueues")
 }
 
 model Hospital {
@@ -49,14 +73,31 @@ model Hospital {
 }
 
 model Department {
-  id         String @id @default(uuid())
-  name       String
-  hospitalId String
+  id                 String             @id @default(uuid())
+  name               String
+  hospitalId         String
+  assignmentStrategy AssignmentStrategy @default(AUTO_ASSIGN)
 
   hospital     Hospital      @relation(fields: [hospitalId], references: [id])
   appointments Appointment[]
   queues       Queue[]
   users        User[]
+  patientDoctors PatientDoctor[]
+}
+
+model PatientDoctor {
+  id           String   @id @default(uuid())
+  patientId    String
+  doctorId     String
+  departmentId String
+  isPrimary    Boolean  @default(true)
+  assignedAt   DateTime @default(now())
+
+  patient    User       @relation("PatientRelationships", fields: [patientId], references: [id], onDelete: Cascade)
+  doctor     User       @relation("DoctorRelationships", fields: [doctorId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([patientId, departmentId])
 }
 
 model Appointment {
@@ -71,23 +112,47 @@ model Appointment {
   status       AppointmentStatus @default(PENDING)
   createdAt    DateTime          @default(now())
 
+  // Assignment tracking
+  assignmentReason      AssignmentReason?
+  isTemporaryAssignment Boolean           @default(false)
+
   patient    User       @relation("PatientAppointments", fields: [patientId], references: [id])
   doctor     User?      @relation("DoctorAppointments", fields: [doctorId], references: [id])
   department Department @relation(fields: [departmentId], references: [id])
   queue      Queue?
+
+  doctorAvailabilityId String? @unique
+  doctorAvailability   DoctorAvailability? @relation(fields: [doctorAvailabilityId], references: [id])
+  lastDayOfAppointment DateTime?
 }
 
 model Queue {
-  id            String @id @default(uuid())
-  appointmentId String @unique
-  departmentId String
-  scheduledAt  DateTime
-  position  Int   
-  status    QueueStatus @default(WAITING)
-  createdAt DateTime    @default(now())
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  doctorId      String
+  departmentId  String
+  scheduledAt   DateTime
+  position      Int   
+  status        QueueStatus @default(WAITING)
+  createdAt     DateTime    @default(now())
 
   appointment Appointment @relation(fields: [appointmentId], references: [id])
+  doctor      User        @relation("DoctorQueues", fields: [doctorId], references: [id])
   department  Department  @relation(fields: [departmentId], references: [id])
 
- @@unique([departmentId, scheduledAt, position])
+  @@unique([doctorId, scheduledAt, position])
+}
+
+model DoctorAvailability {
+  id           String      @id @default(uuid())
+  doctorId     String
+  scheduledAt  DateTime
+  duration     Int         @default(30)
+  isBooked     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+
+  doctor       User        @relation("DoctorAvailability", fields: [doctorId], references: [id], onDelete: Cascade)
+  appointment  Appointment?
+
+  @@unique([doctorId, scheduledAt])
 }

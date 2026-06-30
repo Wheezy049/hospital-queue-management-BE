@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { createAppointment, cancelAppointment, completeAppointment, getAppointments, updateAppointmentNotes } from "../services/appointment.service";
 import { calculateEstimatedWaitTime } from "../services/queue.service";
 import { prisma } from "../lib/prisma";
-import { normalizeScheduledAt } from "../utils/date";
 
 // GET /appointments
 export const listAppointments = async (req: any, res: Response) => {
@@ -47,7 +46,7 @@ export const addNotes = async (req: any, res: Response) => {
 // POST /appointments/create-appointment
 export const addAppointment = async (req: Request, res: Response) => {
     try {
-        const { departmentId, hospitalId, date, time, description, duration } = req.body;
+        const { doctorAvailabilityId, preferredDoctorId, description, lastDayOfAppointment } = req.body;
 
         const user = (req as any).user;
 
@@ -59,55 +58,16 @@ export const addAppointment = async (req: Request, res: Response) => {
             return res.status(403).json({ error: "Only patients can book appointments" });
         }
 
-        if (!departmentId || !hospitalId || !date || !time) {
-            return res.status(400).json({ error: "All fields are required" });
-        }
-
-        const department = await prisma.department.findFirst({
-            where: {
-                id: departmentId,
-                hospitalId,
-            },
-        });
-
-        if (!department) {
-            return res
-                .status(404)
-                .json({ error: "Department not found in the specified hospital" });
-        }
-
-        const scheduledAt = normalizeScheduledAt(date, time);
-
-        const existingAppointment = await prisma.appointment.findFirst({
-            where: {
-                patientId: user.userId,
-                departmentId,
-                scheduledAt,
-                status: {
-                    notIn: ["CANCELLED", "DONE"],
-                },
-            },
-        });
-
-        if (existingAppointment) {
-            return res
-                .status(400)
-                .json({ error: "You already have an appointment for this date" });
-        }
-
-        if (scheduledAt.getTime() < Date.now()) {
-            return res.status(400).json({
-                error: "You cannot book an appointment in the past",
-            });
+        if (!doctorAvailabilityId) {
+            return res.status(400).json({ error: "doctorAvailabilityId is required" });
         }
 
         const appointment = await createAppointment({
-            departmentId,
             patientId: user.userId,
-            date,
-            time,
+            doctorAvailabilityId,
+            preferredDoctorId,
             description,
-            duration: duration ? parseInt(duration) : undefined
+            lastDayOfAppointment
         });
 
         res.status(201).json({
@@ -119,9 +79,9 @@ export const addAppointment = async (req: Request, res: Response) => {
                 status: appointment.queue.status,
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        res.status(400).json({ error: "Failed to create appointment" });
+        res.status(400).json({ error: error.message || "Failed to create appointment" });
     }
 };
 
@@ -190,6 +150,9 @@ export const myAppointments = async (req: any, res: Response) => {
             department: {
                 select: { id: true, name: true, hospital: { select: { name: true } } }
             },
+            doctor: {
+                select: { id: true, name: true, email: true }
+            },
             queue: {
                 select: {
                     position: true,
@@ -203,9 +166,9 @@ export const myAppointments = async (req: any, res: Response) => {
 
     const results = await Promise.all(appointments.map(async (appt) => {
         let waitTime = 0;
-        if (appt.queue && appt.status === "WAITING") {
+        if (appt.queue && appt.status === "WAITING" && appt.doctorId) {
             waitTime = await calculateEstimatedWaitTime(
-                appt.queue.departmentId,
+                appt.doctorId,
                 appt.queue.position,
                 appt.queue.scheduledAt
             );

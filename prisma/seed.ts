@@ -9,7 +9,7 @@ async function main() {
 
   console.log("Starting database seed...");
 
-  // 1. Create Super Admin
+  // Create Super Admin
   const superAdmin = await prisma.user.upsert({
     where: { email: "superadmin@qure.com" },
     update: {},
@@ -21,7 +21,7 @@ async function main() {
     },
   });
 
-  // 2. Create Hospital 1: Qure Metro Hospital
+  // Create Hospital : Qure Metro Hospital
   const metroHospital = await prisma.hospital.upsert({
     where: { id: "qure-metro-id" },
     update: { name: "Qure Metro Hospital" },
@@ -31,17 +31,7 @@ async function main() {
     },
   });
 
-  // 3. Create Hospital 2: Qure Care Clinic
-  const careClinic = await prisma.hospital.upsert({
-    where: { id: "qure-care-id" },
-    update: { name: "Qure Care Clinic" },
-    create: {
-      id: "qure-care-id",
-      name: "Qure Care Clinic",
-    },
-  });
-
-  // 4. Create Departments for Hospital 1
+  // Create Departments for Hospital 
   const cardiologyDept = await prisma.department.upsert({
     where: { id: "metro-cardiology-id" },
     update: {},
@@ -49,6 +39,7 @@ async function main() {
       id: "metro-cardiology-id",
       name: "Cardiology",
       hospitalId: metroHospital.id,
+      assignmentStrategy: "PATIENT_SELECTED",
     },
   });
 
@@ -59,21 +50,23 @@ async function main() {
       id: "metro-pediatrics-id",
       name: "Pediatrics",
       hospitalId: metroHospital.id,
+      assignmentStrategy: "AUTO_ASSIGN",
     },
   });
 
-  // 5. Create Department for Hospital 2
+  // Create General Medicine for Hospital 
   const generalDept = await prisma.department.upsert({
     where: { id: "care-general-id" },
     update: {},
     create: {
       id: "care-general-id",
       name: "General Medicine",
-      hospitalId: careClinic.id,
+      hospitalId: metroHospital.id,
+      assignmentStrategy: "AUTO_ASSIGN",
     },
   });
 
-  // 6. Create Doctors
+  // Create Doctors
   const doctorSmith = await prisma.user.upsert({
     where: { email: "smith@qure.com" },
     update: {},
@@ -84,6 +77,9 @@ async function main() {
       password: doctorPassword,
       role: Role.ADMIN,
       departmentId: cardiologyDept.id,
+      status: "ACTIVE",
+      isAvailable: true,
+      maxDailyPatients: 20,
     },
   });
 
@@ -97,6 +93,9 @@ async function main() {
       password: doctorPassword,
       role: Role.ADMIN,
       departmentId: pediatricsDept.id,
+      status: "ACTIVE",
+      isAvailable: true,
+      maxDailyPatients: 20,
     },
   });
 
@@ -110,12 +109,61 @@ async function main() {
       password: doctorPassword,
       role: Role.ADMIN,
       departmentId: generalDept.id,
+      status: "ACTIVE",
+      isAvailable: true,
+      maxDailyPatients: 20,
     },
   });
 
+  // Create Doctor Availabilities
+  const today = new Date();
+  const getFutureDate = (daysAhead: number, hours: number, minutes: number) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + daysAhead);
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  };
+
+  const availabilityData = [
+    // Dr. Smith slots
+    { doctorId: "doctor-smith-id", scheduledAt: getFutureDate(1, 9, 0) },
+    { doctorId: "doctor-smith-id", scheduledAt: getFutureDate(1, 9, 30) },
+    { doctorId: "doctor-smith-id", scheduledAt: getFutureDate(1, 10, 0) },
+    { doctorId: "doctor-smith-id", scheduledAt: getFutureDate(1, 10, 30) },
+    { doctorId: "doctor-smith-id", scheduledAt: getFutureDate(1, 11, 0) },
+
+    // Dr. Davis slots
+    { doctorId: "doctor-davis-id", scheduledAt: getFutureDate(1, 14, 0) },
+    { doctorId: "doctor-davis-id", scheduledAt: getFutureDate(1, 14, 30) },
+    { doctorId: "doctor-davis-id", scheduledAt: getFutureDate(1, 15, 0) },
+    { doctorId: "doctor-davis-id", scheduledAt: getFutureDate(1, 15, 30) },
+
+    // Dr. Johnson slots
+    { doctorId: "doctor-johnson-id", scheduledAt: getFutureDate(2, 10, 0) },
+    { doctorId: "doctor-johnson-id", scheduledAt: getFutureDate(2, 10, 30) },
+    { doctorId: "doctor-johnson-id", scheduledAt: getFutureDate(2, 11, 0) },
+    { doctorId: "doctor-johnson-id", scheduledAt: getFutureDate(2, 11, 30) },
+  ];
+
+  for (const slot of availabilityData) {
+    await prisma.doctorAvailability.upsert({
+      where: {
+        doctorId_scheduledAt: {
+          doctorId: slot.doctorId,
+          scheduledAt: slot.scheduledAt,
+        },
+      },
+      update: {},
+      create: {
+        doctorId: slot.doctorId,
+        scheduledAt: slot.scheduledAt,
+      },
+    });
+  }
+
   console.log("Seeding completed successfully.", {
     superAdmin: superAdmin.email,
-    hospitals: [metroHospital.name, careClinic.name],
+    hospitals: [metroHospital.name],
     departments: [cardiologyDept.name, pediatricsDept.name, generalDept.name],
     doctors: [doctorSmith.name, doctorDavis.name, doctorJohnson.name],
   });

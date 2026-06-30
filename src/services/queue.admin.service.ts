@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma";
 import { startOfDay, endOfDay, parseISO } from "date-fns";
 
 export const callNextPatient = async (
-  departmentId: string,
+  filters: { doctorId?: string; departmentId?: string },
   date?: string
 ) => {
   const targetDate = date
@@ -12,11 +12,20 @@ export const callNextPatient = async (
   const dayStart = startOfDay(targetDate);
   const dayEnd = endOfDay(targetDate);
 
+  const whereFilter: any = {
+    scheduledAt: { gte: dayStart, lte: dayEnd },
+  };
+
+  if (filters.doctorId) {
+    whereFilter.doctorId = filters.doctorId;
+  } else if (filters.departmentId) {
+    whereFilter.departmentId = filters.departmentId;
+  }
+
   return prisma.$transaction(async (tx) => {
     const activeQueue = await tx.queue.findFirst({
       where: {
-        departmentId,
-        scheduledAt: { gte: dayStart, lte: dayEnd },
+        ...whereFilter,
         status: "ACTIVE",
       },
     });
@@ -35,8 +44,7 @@ export const callNextPatient = async (
 
     const nextQueue = await tx.queue.findFirst({
       where: {
-        departmentId,
-        scheduledAt: { gte: dayStart, lte: dayEnd },
+        ...whereFilter,
         status: "WAITING",
       },
       orderBy: { position: "asc" },
@@ -64,31 +72,46 @@ export const callNextPatient = async (
   });
 };
 
-// For ADMIN: See all appointments and their queue positions for today
+// For admin they see all appointments and their queue positions for today
 export const getQueueByDate = async (
-  departmentId: string,
+  filters: { doctorId?: string; departmentId?: string },
   date?: string
 ) => {
   const targetDate = date
     ? startOfDay(parseISO(date))
     : startOfDay(new Date());
 
-  return prisma.queue.findMany({
-    where: {
-      departmentId,
-      scheduledAt: {
-        gte: targetDate,
-        lte: endOfDay(targetDate),
-      },
+  let where: any = {
+    scheduledAt: {
+      gte: targetDate,
+      lte: endOfDay(targetDate),
     },
+  };
+
+  if (filters.doctorId) {
+    where.doctorId = filters.doctorId;
+  } else if (filters.departmentId) {
+    where.departmentId = filters.departmentId;
+  }
+
+  return prisma.queue.findMany({
+    where,
     orderBy: { position: "asc" },
     select: {
       id: true,
       position: true,
       status: true,
       scheduledAt: true,
+      department: {
+        select: { name: true }
+      },
       appointment: {
-        select: { id: true, patient: { select: { name: true, email: true } } },
+        select: {
+          id: true,
+          description: true,
+          lastDayOfAppointment: true,
+          patient: { select: { name: true, email: true } },
+        },
       },
     },
   });
@@ -142,7 +165,7 @@ export const moveQueue = async (
 
     const other = await tx.queue.findFirst({
       where: {
-        departmentId: current.departmentId,
+        doctorId: current.doctorId,
         scheduledAt: {
           gte: dayStart,
           lte: dayEnd,
